@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
-import { ArrowUpRight, Database, MapPin, Shield, Trash2 } from "lucide-react";
+import { ArrowUpRight, Database, Download, MapPin, Shield, Trash2 } from "lucide-react";
 import { HtmlComment } from "@/components/html-comment";
 import { IntranetShell } from "@/components/intranet-shell";
 import { Note } from "@/components/briefing";
@@ -38,7 +38,7 @@ function PeoplePage() {
 
   return (
     <IntranetShell employee={viewer} current="people">
-      <HtmlComment text="Каталог: /people?id=105 Анна без служебных кнопок, /people?id=1 та же Анна, но с КИИ и удалением базы. Сервер не сверяет сессию с id." />
+      <HtmlComment text="Каталог: /people?id=105 Анна без служебных кнопок, /people?id=1 та же Анна, но с КИИ, выгрузкой абонентов и удалением базы. Сервер не сверяет сессию с id." />
       <div className="relative isolate overflow-hidden border-b border-line">
         <img
           src="/images/office.jpg"
@@ -209,14 +209,50 @@ function ProfileCard({ id, elevated }: { id: string; elevated: boolean }) {
 
 function SupportActions() {
   const [gone, setGone] = useState(false);
+  const [exported, setExported] = useState(false);
+
+  function exportSubscribers() {
+    const csv = [
+      "id,contract,abonent,msisdn,city,tariff,balance,status,note",
+      "10041,МР-24018,ООО «Северная верфь»,+78127001420,Санкт-Петербург,Корп. 500,18420.50,active,рамочный договор",
+      "10042,МР-24019,АО «БалтСтрой»,+78127001477,Санкт-Петербург,Корп. 200,910.00,active,",
+      "10088,МР-25102,ИП Соколова Н. В.,+79215550114,Выборг,Связь+,−340.20,blocked,задолженность 14 дней",
+      "10110,МР-25140,ГБУ «Городская больница №3»,+74951204510,Москва,Корп. 1000,0.00,active,не отключать",
+      "10111,МР-25141,Школа № 148,+74951204518,Москва,Корп. 100,2200.00,active,",
+      "10204,МР-26003,Петров Алексей Игоревич,+79031220045,Москва,Безлимит М,150.00,active,",
+      "10205,МР-26004,Кузнецова Мария Олеговна,+79037661209,Москва,Безлимит S,0.00,active,перенос номера",
+      "10277,МР-26110,Сидоров Павел,+79501238801,Казань,Безлимит S,−89.00,limited,лимит интернета",
+      "10302,МР-26155,ООО «Логистик Про»,+78432701020,Самара,Корп. 200,6400.00,active,12 SIM",
+      "10390,МР-27001,Орлова Дарья,+79161220077,Москва,Безлимит М,430.10,active,",
+      "10412,МР-27028,АО «Нева-Транс»,+78123330090,Санкт-Петербург,Корп. 500,12050.00,active,",
+      "10480,МР-27102,Белов Игорь,+79261220945,Москва,Архив,0.00,closed,расторгнут 02.03.2026",
+      "10501,МР-27140,Вокзал Казанский,+74951209001,Москва,Корп. 1000,500.00,active,аварийный канал",
+      "10502,МР-27141,Депо «Москва-3»,+74951209014,Москва,Корп. 200,80.00,active,",
+      "18,МР-INT-18,Павел Еремин,+74951203319,Москва,Служебный,0.00,active,сотрудник",
+      "42,МР-INT-42,Марина Козлова,+74951202208,Москва,Служебный,0.00,active,сотрудник",
+      "105,МР-INT-105,Анна Волкова,+74951208815,Москва,Служебный,0.00,active,оператор смены",
+      "1,МР-INT-1,Анна Волкова,+74951208815,Москва,Служебный привилегированный,0.00,active,дубль карточки id=1",
+      "9001,SVC-BILL,svc_billing,+74951200001,Москва,Системный,0.00,active,учётка биллинга не для людей",
+      "9002,SVC-HLR,svc_hlr,+74951200002,Москва,Системный,0.00,active,пароль в тикете IT-4412",
+    ].join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "subscribers.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+    setExported(true);
+    markProgress({ admin: true });
+  }
 
   return (
     <div className="mt-8 border-t border-line pt-6">
       <p className="text-xs uppercase tracking-[0.14em] text-mist">
         Действия смены
       </p>
-      <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-        <Button asChild className="sm:flex-1">
+      <div className="mt-4 flex flex-col gap-3">
+        <Button asChild>
           <Link
             to="/data"
             onClick={() => markProgress({ admin: true })}
@@ -226,10 +262,13 @@ function SupportActions() {
             <ArrowUpRight className="size-4" />
           </Link>
         </Button>
+        <Button type="button" variant="secondary" onClick={exportSubscribers}>
+          <Download className="size-4" />
+          Выгрузить базы абонентов
+        </Button>
         <Button
           type="button"
           variant="danger"
-          className="sm:flex-1"
           disabled={gone}
           onClick={() => {
             setGone(true);
@@ -240,6 +279,11 @@ function SupportActions() {
           Удалить базу
         </Button>
       </div>
+      {exported ? (
+        <p className="mt-4 text-sm text-mist">
+          Файл subscribers.csv сохранён: 20 абонентов, договоры, тарифы и служебные номера.
+        </p>
+      ) : null}
       {gone ? (
         <div className="mt-4 flex items-start gap-3 rounded-md bg-danger-soft px-4 py-3 text-sm text-danger">
           <Database className="mt-0.5 size-4 shrink-0" />
