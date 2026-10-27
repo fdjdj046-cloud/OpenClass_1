@@ -38,7 +38,7 @@ function PeoplePage() {
 
   return (
     <IntranetShell employee={viewer} current="people">
-      <HtmlComment text="Каталог: /people?id=105 Анна без служебных кнопок, /people?id=1 та же Анна, но с КИИ, выгрузкой абонентов и удалением базы. Сервер не сверяет сессию с id." />
+      <HtmlComment text="Каталог: /people?id=105 Анна и выгрузка абонентов, /people?id=1 та же Анна, но с КИИ и удалением базы. Сервер не сверяет сессию с id." />
       <div className="relative isolate overflow-hidden border-b border-line">
         <img
           src="/images/office.jpg"
@@ -202,13 +202,14 @@ function ProfileCard({ id, elevated }: { id: string; elevated: boolean }) {
         </div>
       ) : elevated ? (
         <SupportActions />
+      ) : person.role === "intern" ? (
+        <DownloadSubscribers />
       ) : null}
     </article>
   );
 }
 
-function SupportActions() {
-  const [gone, setGone] = useState(false);
+function DownloadSubscribers() {
   const [exported, setExported] = useState(false);
 
   function exportSubscribers() {
@@ -243,8 +244,25 @@ function SupportActions() {
     link.click();
     URL.revokeObjectURL(url);
     setExported(true);
-    markProgress({ admin: true });
   }
+
+  return (
+    <div className="mt-8 border-t border-line pt-6">
+      <Button type="button" variant="secondary" onClick={exportSubscribers}>
+        <Download className="size-4" />
+        Выгрузить базы абонентов
+      </Button>
+      {exported ? (
+        <p className="mt-4 text-sm text-mist">
+          Файл subscribers.csv сохранён: 20 абонентов, договоры, тарифы и служебные номера.
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function SupportActions() {
+  const [gone, setGone] = useState(false);
 
   return (
     <div className="mt-8 border-t border-line pt-6">
@@ -253,18 +271,11 @@ function SupportActions() {
       </p>
       <div className="mt-4 flex flex-col gap-3">
         <Button asChild>
-          <Link
-            to="/data"
-            onClick={() => markProgress({ admin: true })}
-          >
+          <Link to="/data" onClick={() => markProgress({ admin: true })}>
             <Shield className="size-4" />
             Критическая информационная инфраструктура
             <ArrowUpRight className="size-4" />
           </Link>
-        </Button>
-        <Button type="button" variant="secondary" onClick={exportSubscribers}>
-          <Download className="size-4" />
-          Выгрузить базы абонентов
         </Button>
         <Button
           type="button"
@@ -279,11 +290,6 @@ function SupportActions() {
           Удалить базу
         </Button>
       </div>
-      {exported ? (
-        <p className="mt-4 text-sm text-mist">
-          Файл subscribers.csv сохранён: 20 абонентов, договоры, тарифы и служебные номера.
-        </p>
-      ) : null}
       {gone ? (
         <div className="mt-4 flex items-start gap-3 rounded-md bg-danger-soft px-4 py-3 text-sm text-danger">
           <Database className="mt-0.5 size-4 shrink-0" />
